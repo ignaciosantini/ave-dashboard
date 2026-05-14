@@ -1,35 +1,39 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, LabelList
+} from "recharts";
 
 // ─── Supabase ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://bujmrvrqsiwtcoscvwwu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_KqR-_d2yhRlkdytQuleMfA_b0Zp21l8";
 
 async function sbGet() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main&select=stock,months`, {
-    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-  });
-  const rows = await res.json();
-  return rows?.[0] ?? null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main&select=stock,months`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    return rows?.[0] ?? null;
+  } catch(e) { return null; }
 }
 
 async function sbSet(stock, months) {
-  await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main`, {
-    method: "PATCH",
-    headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      "Prefer": "return=minimal"
-    },
-    body: JSON.stringify({ stock, months, updated_at: new Date().toISOString() })
-  });
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main`, {
+      method: "PATCH",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ stock, months, updated_at: new Date().toISOString() })
+    });
+  } catch(e) { console.error("Supabase save error:", e); }
 }
 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ComposedChart, LabelList
-} from "recharts";
 
 const FLAVORS = [
   { key: "mandarina", label: "Mandarina",     color: "#D85A30" },
@@ -521,7 +525,7 @@ export default function App(){
     })();
   },[]);
 
-  const persist=useCallback(async(s,m)=>{setStock(s);setMonths(m);try{await sbSet(s,m);}catch(e){console.error("Supabase save error:",e);}},[]);
+  const persist=useCallback(async(s,m)=>{setStock(s);setMonths(m);await sbSet(s,m);},[]);
   const saveStock=s=>{persist(s,months);setStockModal(false);};
 
   const confirmMonthDraft=()=>{
