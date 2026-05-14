@@ -1,5 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+
+// ─── Supabase ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://bujmrvrqsiwtcoscvwwu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_KqR-_d2yhRlkdytQuleMfA_b0Zp21l8";
+
+async function sbGet() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main&select=stock,months`, {
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+  });
+  const rows = await res.json();
+  return rows?.[0] ?? null;
+}
+
+async function sbSet(stock, months) {
+  await fetch(`${SUPABASE_URL}/rest/v1/ave_data?id=eq.main`, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    body: JSON.stringify({ stock, months, updated_at: new Date().toISOString() })
+  });
+}
+
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ComposedChart, LabelList
@@ -482,23 +508,20 @@ export default function App(){
   useEffect(()=>{
     (async()=>{
       try{
-        const raw = localStorage.getItem("ave_data");
-        const r = raw ? { value: raw } : null;
-        if(r?.value){
-          const d=JSON.parse(r.value);
-          const s=d.stock??null;
-          // Migrate: ensure every month has entregas array
-          const m=(d.months??[]).map(mo=>({...mo,entregas:mo.entregas??[],mermas:mo.mermas??[]}));
-          setStock(s);setMonths(m);
+        const row = await sbGet();
+        if(row && row.stock) {
+          const s = row.stock;
+          const m = (row.months ?? []).map(mo=>({...mo, entregas:mo.entregas??[], mermas:mo.mermas??[]}));
+          setStock(s); setMonths(m);
         } else {
-          setStock(SEED_STOCK);setMonths(SEED_MONTHS);
-          localStorage.setItem("ave_data",JSON.stringify({stock:SEED_STOCK,months:SEED_MONTHS}));
+          setStock(SEED_STOCK); setMonths(SEED_MONTHS);
+          await sbSet(SEED_STOCK, SEED_MONTHS);
         }
       }catch{setStock(SEED_STOCK);setMonths(SEED_MONTHS);}
     })();
   },[]);
 
-  const persist=useCallback(async(s,m)=>{setStock(s);setMonths(m);try{localStorage.setItem("ave_data",JSON.stringify({stock:s,months:m}));}catch{}},[]);
+  const persist=useCallback(async(s,m)=>{setStock(s);setMonths(m);try{await sbSet(s,m);}catch(e){console.error("Supabase save error:",e);}},[]);
   const saveStock=s=>{persist(s,months);setStockModal(false);};
 
   const confirmMonthDraft=()=>{
