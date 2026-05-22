@@ -56,6 +56,19 @@ const DELIVERY_CHANNELS = [
 
 // Generate months from Aug-25 to current month (May 26 = index 4, year 26)
 const MONTH_NAMES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+function monthToIndex(m) {
+  // "May 26" → 2026*12 + 4  (sortable number)
+  if (!m) return 0;
+  const parts = m.trim().split(" ");
+  const mIdx  = MONTH_NAMES.indexOf(parts[0]);
+  const year  = parseInt(parts[1]) || 0;
+  return year * 12 + mIdx;
+}
+
+function sortMonths(arr) {
+  return [...arr].sort((a, b) => monthToIndex(a.month) - monthToIndex(b.month));
+}
 function generateMonthList() {
   const list = [];
   // start: Aug 25 → month index 7, year 25
@@ -597,7 +610,7 @@ export default function App(){
   const handleReset=async()=>{await persist(SEED_STOCK,SEED_MONTHS);setDelConf(null);};
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  const computed  = months.map(m=>({...m,...calcMonth(m)}));
+  const computed  = sortMonths(months.map(m=>({...m,...calcMonth(m)})));
   const currStock = stock?calcRunningStock(stock,months):mkMap(0);
 
   // 1. Filter months
@@ -744,21 +757,21 @@ export default function App(){
   const activeFilterCount=(fMonth?1:0)+fFlavors.length+fChan.length+fDChan.length;
 
   // ── All rows for historial ────────────────────────────────────────────────
-  const allVentaRows = [...months].reverse().flatMap(m=>
+  const allVentaRows = [...months].sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month)).flatMap(m=>
     (m.ventas||[]).map((v,vi)=>{
       const r=calcItems(v.items);
       const ch=CHANNELS.find(c=>c.key===v.channel);
       return {kind:"venta",month:m.month,cogs:m.cogs,ch,channelNote:v.channelNote,units:r.units,revenue:r.revenue,byFlavor:r.byFlavor,price:r.units>0?Math.round(r.revenue/r.units):0,monthKey:m.month,vIdx:months.find(mm=>norm(mm.month)===norm(m.month))?.ventas?.indexOf(v)??vi,raw:v};
     })
   );
-  const allEntregaRows = [...months].reverse().flatMap(m=>
+  const allEntregaRows = [...months].sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month)).flatMap(m=>
     (m.entregas||[]).map((e,ei)=>{
       const r=calcDeliveryItems(e.items);
       const ch=DELIVERY_CHANNELS.find(c=>c.key===e.channel);
       return {kind:"entrega",month:m.month,ch,channelNote:e.channelNote,units:r.units,byFlavor:r.byFlavor,monthKey:m.month,eIdx:months.find(mm=>norm(mm.month)===norm(m.month))?.entregas?.indexOf(e)??ei,raw:e};
     })
   );
-  const allMermaRows = [...months].reverse().flatMap(m=>
+  const allMermaRows = [...months].sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month)).flatMap(m=>
     (m.mermas||[]).map((mr,mi)=>{
       const r=calcDeliveryItems(mr.items);
       return {kind:"merma",month:m.month,motivo:mr.motivo,units:r.units,byFlavor:r.byFlavor,monthKey:m.month,mIdx:months.find(mm=>norm(mm.month)===norm(m.month))?.mermas?.indexOf(mr)??mi,raw:mr};
