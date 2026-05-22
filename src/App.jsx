@@ -713,10 +713,11 @@ export default function App(){
   const mrrChartData = filtMonths.map((d,i)=>{
     const mVentas=filtVentas.filter(v=>v.month===d.month);
     const mrr=mVentas.reduce((a,v)=>a+v.revenue,0);
+    const totalUnits=mVentas.reduce((a,v)=>a+v.units,0);
     const prevMrr=i>0?filtVentas.filter(v=>v.month===filtMonths[i-1].month).reduce((a,v)=>a+v.revenue,0):null;
     const byChan = Object.fromEntries(CHANNELS.map(c=>[c.key, 0]));
     mVentas.forEach(v=>{ byChan[v.channel]=(byChan[v.channel]||0)+v.revenue; });
-    return {month:d.month, mrr, growth:prevMrr!=null?parseFloat(pct(mrr,prevMrr)):null, ...byChan};
+    return {month:d.month, mrr, totalUnits, growth:prevMrr!=null?parseFloat(pct(mrr,prevMrr)):null, ...byChan};
   });
 
   const marginData=filtMonths.map(d=>({month:d.month,precio:d.price,cogs:d.cogs,margen:d.price-d.cogs}));
@@ -907,19 +908,19 @@ export default function App(){
               <div style={{fontSize:12,color:"#888",marginBottom:10}}>Por canal de venta</div>
               <div style={{display:"flex",gap:16,marginBottom:10,fontSize:12,color:"#666",flexWrap:"wrap"}}>
                 {CHANNELS.map(c=><span key={c.key} style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:10,height:10,borderRadius:2,background:c.color,display:"inline-block"}}></span>{c.label}</span>)}
-                <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:10,height:10,borderRadius:2,background:"#1D9E75",display:"inline-block"}}></span>Crecimiento %</span>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:10,height:10,borderRadius:"50%",background:"#2C3E50",display:"inline-block"}}></span>Geles vendidos</span>
               </div>
               <ResponsiveContainer width="100%" height={240}>
-                <ComposedChart data={mrrChartData} margin={{top:4,right:40,left:0,bottom:0}}>
+                <ComposedChart data={mrrChartData} margin={{top:4,right:50,left:0,bottom:0}}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)"/>
                   <XAxis dataKey="month" tick={{fontSize:11,fill:"#888"}}/>
                   <YAxis yAxisId="left" tick={{fontSize:11,fill:"#888"}} tickFormatter={v=>`$${fmtNum(v)}`}/>
-                  <YAxis yAxisId="right" orientation="right" tick={{fontSize:11,fill:"#1D9E75"}} tickFormatter={v=>`${v}%`} domain={[0,50]}/>
+                  <YAxis yAxisId="right" orientation="right" tick={{fontSize:11,fill:"#2C3E50"}} tickFormatter={v=>fmtNum(v)} allowDecimals={false}/>
                   <Tooltip content={<CTip/>}/>
                   {CHANNELS.map((c,idx)=>(
                     <Bar key={c.key} yAxisId="left" dataKey={c.key} name={c.label} stackId="ingresos" fill={c.color} radius={idx===CHANNELS.length-1?[3,3,0,0]:[0,0,0,0]}/>
                   ))}
-                  <Line yAxisId="right" dataKey="growth" name="Crecimiento %" stroke="#1D9E75" strokeWidth={2} dot={{r:3,fill:"#1D9E75"}} connectNulls={false}/>
+                  <Line yAxisId="right" dataKey="totalUnits" name="Geles vendidos" stroke="#2C3E50" strokeWidth={2} dot={{r:5,fill:"#2C3E50",stroke:"white",strokeWidth:2}} connectNulls={true}/>
                 </ComposedChart>
               </ResponsiveContainer>
             </Card>
