@@ -531,11 +531,9 @@ export default function App(){
           const s = row.stock;
           const m = (row.months ?? []).map(mo=>({...mo, entregas:mo.entregas??[], mermas:mo.mermas??[]}));
           setStock(s); setMonths(m);
-        } else {
-          setStock(SEED_STOCK); setMonths(SEED_MONTHS);
-          await sbSet(SEED_STOCK, SEED_MONTHS);
         }
-      }catch{setStock(SEED_STOCK);setMonths(SEED_MONTHS);}
+        // If Supabase has no data yet, leave empty — NEVER overwrite with SEED
+      }catch(e){console.error("Load error:",e);}
     })();
   },[]);
 
@@ -1225,8 +1223,8 @@ export default function App(){
         {view==="historial"&&(
           <>
             <SectionLabel>Historial de registros</SectionLabel>
-            {/* Tabs */}
-            <div style={{display:"flex",gap:8,marginBottom:12}}>
+            {/* Tabs + Export button */}
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
               <button onClick={()=>setHistTab("ventas")} style={{padding:"7px 18px",borderRadius:8,border:histTab==="ventas"?"1.5px solid #D85A30":"0.5px solid rgba(0,0,0,0.15)",background:histTab==="ventas"?"#FAECE7":"transparent",color:histTab==="ventas"?"#993C1D":"#555",fontWeight:histTab==="ventas"?500:400,fontSize:13,cursor:"pointer"}}>
                 Ventas ({allVentaRows.length})
               </button>
@@ -1236,7 +1234,69 @@ export default function App(){
               <button onClick={()=>setHistTab("mermas")} style={{padding:"7px 18px",borderRadius:8,border:histTab==="mermas"?"1.5px solid #7F8C8D":"0.5px solid rgba(0,0,0,0.15)",background:histTab==="mermas"?"#F2F3F4":"transparent",color:histTab==="mermas"?"#555":"#555",fontWeight:histTab==="mermas"?500:400,fontSize:13,cursor:"pointer"}}>
                 Mermas ({allMermaRows.length})
               </button>
-              <button onClick={()=>setDelConf("reset")} style={{marginLeft:"auto",fontSize:12,color:"#A32D2D",background:"transparent",border:"0.5px solid #F09595",padding:"4px 12px",borderRadius:8,cursor:"pointer"}}>Resetear datos</button>
+              <button onClick={()=>{
+                // Build Excel using SheetJS-style CSV download (no external lib needed)
+                const BOM = "\uFEFF";
+
+                // Ventas sheet
+                const ventaHeaders = ["Mes","Canal","Comentario","Unidades","Ingresos ($)","Precio prom. ($)","Mandarina","Mand. cafeína","Lima","Lima cafeína"];
+                const ventaData = allVentaRows.map(r=>[
+                  r.month,
+                  r.ch?.label||"",
+                  r.channelNote||"",
+                  r.units,
+                  Math.round(r.revenue),
+                  r.price||0,
+                  r.byFlavor?.mandarina||0,
+                  r.byFlavor?.mandCaf||0,
+                  r.byFlavor?.lima||0,
+                  r.byFlavor?.limaCaf||0,
+                ]);
+
+                // Entregas sheet
+                const entregaHeaders = ["Mes","Canal entrega","Destinatario","Geles","Mandarina","Mand. cafeína","Lima","Lima cafeína"];
+                const entregaData = allEntregaRows.map(r=>[
+                  r.month,
+                  r.ch?.label||"",
+                  r.channelNote||"",
+                  r.units,
+                  r.byFlavor?.mandarina||0,
+                  r.byFlavor?.mandCaf||0,
+                  r.byFlavor?.lima||0,
+                  r.byFlavor?.limaCaf||0,
+                ]);
+
+                // Mermas sheet
+                const mermaHeaders = ["Mes","Motivo","Geles","Mandarina","Mand. cafeína","Lima","Lima cafeína"];
+                const mermaData = allMermaRows.map(r=>[
+                  r.month,
+                  r.motivo||"",
+                  r.units,
+                  r.byFlavor?.mandarina||0,
+                  r.byFlavor?.mandCaf||0,
+                  r.byFlavor?.lima||0,
+                  r.byFlavor?.limaCaf||0,
+                ]);
+
+                const toCSV = (headers, rows) =>
+                  [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+
+                const combined =
+                  "=== VENTAS ===\n" + toCSV(ventaHeaders, ventaData) +
+                  "\n\n=== ENTREGAS A INFLUENCERS ===\n" + toCSV(entregaHeaders, entregaData) +
+                  "\n\n=== MERMAS ===\n" + toCSV(mermaHeaders, mermaData);
+
+                const blob = new Blob([BOM + combined], {type:"text/csv;charset=utf-8;"});
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement("a");
+                a.href     = url;
+                a.download = `AVE_Historial_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }} style={{marginLeft:"auto",padding:"7px 16px",background:"#3B6D11",color:"white",border:"none",borderRadius:8,fontSize:13,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+                ⬇ Descargar Excel
+              </button>
+              <button onClick={()=>setDelConf("reset")} style={{fontSize:12,color:"#A32D2D",background:"transparent",border:"0.5px solid #F09595",padding:"4px 12px",borderRadius:8,cursor:"pointer"}}>Resetear datos</button>
             </div>
             {delConf==="reset"&&(
               <div style={{background:"#FCEBEB",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#A32D2D",display:"flex",gap:10,alignItems:"center"}}>
