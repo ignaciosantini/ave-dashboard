@@ -1296,15 +1296,7 @@ export default function App(){
               }} style={{marginLeft:"auto",padding:"7px 16px",background:"#3B6D11",color:"white",border:"none",borderRadius:8,fontSize:13,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                 ⬇ Descargar Excel
               </button>
-              <button onClick={()=>setDelConf("reset")} style={{fontSize:12,color:"#A32D2D",background:"transparent",border:"0.5px solid #F09595",padding:"4px 12px",borderRadius:8,cursor:"pointer"}}>Resetear datos</button>
             </div>
-            {delConf==="reset"&&(
-              <div style={{background:"#FCEBEB",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#A32D2D",display:"flex",gap:10,alignItems:"center"}}>
-                ¿Seguro? Se borrarán todos los datos.
-                <button onClick={handleReset} style={{background:"#A32D2D",color:"white",border:"none",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12}}>Sí, resetear</button>
-                <button onClick={()=>setDelConf(null)} style={{background:"transparent",border:"0.5px solid #A32D2D",color:"#A32D2D",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12}}>Cancelar</button>
-              </div>
-            )}
 
             {/* Ventas table */}
             {histTab==="ventas"&&(
